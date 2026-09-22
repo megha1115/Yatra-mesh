@@ -1,0 +1,181 @@
+// Yatra Mesh: PostGIS & Prisma RTO Contract Carriage Schema
+// Compliant with Motor Vehicles Act 1988 (Section 74) & State Aggregator Rules
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum UserRole {
+  COMMUTER
+  DRIVER
+  HR_ADMIN
+  DISPATCHER
+}
+
+enum VehicleType {
+  SHARED_AUTO      // 3-seater feeder
+  TEMPO_TRAVELER   // 12-seater arterial transit
+  MINIBUS          // 24-seater macro trunk corridor
+}
+
+enum TripStatus {
+  SCHEDULED
+  EN_ROUTE
+  EVALUATING
+  EMERGENCY_HOLD
+  COMPLETED
+}
+
+enum BoardingStatus {
+  PENDING
+  ONBOARDED
+  NO_SHOW
+}
+
+model Enterprise {
+  id                  String         @id @default(uuid())
+  name                String
+  cinNumber           String         @unique // e.g. U72200KA2023PTC178941
+  contractPermitRef   String         @unique // e.g. KA-RTO-CC-2024-918
+  headquarters        String
+  contactEmail        String
+  targetOccupancyPct  Float          @default(90.0) // Constraint: >= 90%
+  esgMonthlyTargetKg  Float          @default(5000.0)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  users               User[]
+  tripManifests       TripManifest[]
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  phone          String
+  role           UserRole        @default(COMMUTER)
+  enterpriseId   String
+  enterprise     Enterprise      @relation(fields: [enterpriseId], references: [id])
+  
+  // Commuter home node / office location (PostGIS Point)
+  homeAddress    String?
+  homeLat        Float?
+  homeLng        Float?
+  shiftTime      String?         // e.g. "09:00 AM - 06:00 PM"
+  
+  // Driver vehicle linkage
+  assignedVehicle FleetVehicle?  @relation("DriverVehicle")
+  
+  // Passenger manifests
+  manifestPasses TripPassenger[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([enterpriseId, role])
+}
+
+model FleetVehicle {
+  id                   String        @id @default(uuid())
+  registrationNumber   String        @unique // Yellow-board plate e.g. KA-03-AG-9042
+  vehicleType          VehicleType
+  seatCapacity         Int           // 3, 12, or 24
+  makeModel            String
+  rtoPermitExpiry      DateTime
+  isYellowBoardCompliant Boolean     @default(true)
+  fuelType             String        @default("EV") // EV, CNG, DIESEL
+  
+  driverId             String?       @unique
+  driver               User?         @relation("DriverVehicle", fields: [driverId], references: [id])
+
+  // Real-time telemetry (PostGIS Point)
+  currentLat           Float?
+  currentLng           Float?
+  speedKmph            Float         @default(0.0)
+  lastPingAt           DateTime      @default(now())
+
+  tripManifests        TripManifest[]
+
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model TripManifest {
+  id                  String         @id @default(uuid())
+  manifestNumber      String         @unique // RTO mandated pre-manifest sequence
+  enterpriseId        String
+  enterprise          Enterprise     @relation(fields: [enterpriseId], references: [id])
+  
+  vehicleId           String
+  vehicle             FleetVehicle   @relation(fields: [vehicleId], references: [id])
+  
+  driverId            String
+  shiftWindow         String         // e.g. "08:30 AM - 09:30 AM"
+  status              TripStatus     @default(SCHEDULED)
+  
+  // Macro Gemini Routing Metrics
+  occupancyRatePct    Float          // >= 90%
+  avgWalkDistanceM    Float          // < 150m constraint
+  totalDistanceKm     Float
+  carbonSavedKg       Float
+  
+  // PostGIS Polyline / GeoJSON
+  routeGeoJson        Json?
+  
+  virtualStops        VirtualStop[]
+  passengers          TripPassenger[]
+
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([enterpriseId, status])
+}
+
+model VirtualStop {
+  id              String         @id @default(uuid())
+  tripId          String
+  trip            TripManifest   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  name            String         // e.g. "EcoSpace South Gate Pedestrian Bay"
+  stopSequence    Int
+  lat             Float
+  lng             Float
+  geofenceRadiusM Float          @default(150.0) // 150m walking radius
+  etaMinutes      Int
+  
+  createdAt       DateTime       @default(now())
+}
+
+model TripPassenger {
+  id              String         @id @default(uuid())
+  tripId          String
+  trip            TripManifest   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  
+  seatNumber      String         // e.g. "Seat 4A"
+  virtualStopName String
+  virtualStopLat  Float
+  virtualStopLng  Float
+  walkDistanceM   Float          // Must satisfy < 150m
+  
+  boardingStatus  BoardingStatus @default(PENDING)
+  boardingToken   String         @unique // Dynamic HMAC / QR token for offline validation
+  boardedAt       DateTime?
+  offlineVerified Boolean        @default(false)
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([tripId, boardingStatus])
+}

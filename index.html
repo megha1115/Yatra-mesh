@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yatra Mesh | Application Launcher & Portal</title>
+  <link rel="icon" type="image/svg+xml" href="public/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B13;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(51, 65, 85, 0.6);
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --accent: #06b6d4;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+    }
+
+    /* Top Nav */
+    header {
+      background: rgba(7, 11, 19, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    .brand-logo {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: #070B13;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+      position: relative;
+    }
+
+    .brand-badge {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.15rem 0.5rem;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 999px;
+    }
+
+    .server-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      background-color: #64748b;
+    }
+
+    .status-dot.online {
+      background-color: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline {
+      background-color: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0.6; transform: scale(0.95); }
+    }
+
+    /* Container */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Hero Section */
+    .hero-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 650px;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    /* Action Buttons */
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.85rem 1.6rem;
+      border-radius: 0.875rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #05140d;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.8);
+      color: #e2e8f0;
+      border: 1px solid rgba(71, 85, 105, 0.5);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.8);
+      border-color: rgba(148, 163, 184, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-outline:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: #38bdf8;
+    }
+
+    /* Auto-Redirect Notice */
+    .auto-redirect-banner {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      color: #a7f3d0;
+      margin-top: 1rem;
+    }
+
+    .auto-redirect-banner span.countdown {
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #34d399;
+    }
+
+    /* Feature Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      color: #f1f5f9;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-link {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #34d399;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-decoration: none;
+    }
+
+    .card-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Command helper box */
+    .code-box {
+      background: #0b111e;
+      border: 1px solid #1e293b;
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      margin-top: 1rem;
+    }
+
+    .copy-btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      border-radius: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+    }
+
+    .copy-btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    /* Frame Preview Mode */
+    #frame-container {
+      display: none;
+      width: 100%;
+      height: 82vh;
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      background: #070B13;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(30, 41, 59, 0.8);
+      padding: 1.5rem 2rem;
+      font-size: 0.8rem;
+      color: #64748b;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">YM</div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <strong style="font-size: 1.05rem; letter-spacing: 0.05em;">YATRA MESH</strong>
+          <span class="brand-badge">MVP v1.0</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+          Corporate Shared Transit & Mesh Mobility
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div id="serverPill" class="server-status-pill">
+        <span id="serverDot" class="status-dot"></span>
+        <span id="serverStatusText">Checking Next.js Server...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container" id="mainContainer">
+
+    <!-- Hero Card -->
+    <div class="hero-card">
+      <h1>Run Yatra Mesh</h1>
+      <p class="subtitle">
+        Launch the RTO-compliant shared mobility platform with Gemini macro-routing, proactive edge audio safety telemetry, and offline PWA mesh fallback.
+      </p>
+
+      <div class="action-row">
+        <!-- Direct App Link -->
+        <a id="btnOpenApp" href="http://localhost:3000" target="_blank" class="btn btn-primary">
+          <span>🚀 Open Live App (localhost:3000)</span>
+        </a>
+
+        <!-- Embed Mode -->
+        <button id="btnEmbedApp" class="btn btn-secondary" onclick="toggleEmbedMode()">
+          <span>🖥️ Open Inside This Window</span>
+        </button>
+
+        <!-- Network IP link -->
+        <button onclick="promptLanIp()" class="btn btn-outline" id="btnLanLink">
+          <span>📱 Mobile / Wi-Fi View</span>
+        </button>
+      </div>
+
+      <!-- Auto redirect indicator -->
+      <div id="autoRedirectBox" class="auto-redirect-banner">
+        <span>⚡ Server is online! Redirecting automatically in <span id="countdownText" class="countdown">3</span>s...</span>
+        <button onclick="cancelRedirect()" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: 0.4rem; cursor: pointer;">Cancel</button>
+      </div>
+
+      <!-- If offline guide -->
+      <div id="offlineNotice" style="display: none; margin-top: 1.5rem; padding: 1.25rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #fca5a5; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem;">
+          ⚠️ Next.js Dev Server is not running
+        </div>
+        <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
+          To start the software, run this command in your project terminal or double-click <strong>Run-Yatra-Mesh.bat</strong>:
+        </p>
+        <div class="code-box">
+          <code>npm run dev</code>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('npm run dev'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 2000)">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portal Cards Grid -->
+    <div class="grid">
+      <!-- Commuter Portal -->
+      <div class="card">
+        <div>
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">👥</div>
+          <div class="card-title">Commuter Portal</div>
+          <div class="card-desc">
+            Pass verification, dynamic boarding QR code, live route timeline, and offline mesh transit fallback.
+          </div>
+        </div>
+        <a href="http://localhost:3000" target="_blank" class="card-link">Launch Commuter &rarr;</a>
+      </div>
+
+      <!-- Driver HUD -->
+      <div class="card">
+        <div>
+          <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">🚌</div>
+          <div class="card-title">Driver HUD</div>
+          <div class="card-desc">
+            Turn-by-turn route, passenger onboarding checklist, emergency stop holds, and local IndexedDB state.
+          </div>
+        </div>
+        <a href="http://localhost:3000" target="_blank" class="card-link">Launch Driver &rarr;</a>
+      </div>
+
+      <!-- Enterprise HR Portal -->
+      <div class="card">
+        <div>
+          <div class="card-icon" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">🏢</div>
+          <div class="card-title">Enterprise Ops</div>
+          <div class="card-desc">
+            Shift scheduling, Gemini 2.5 Flash k-means route clustering, dynamic vehicle allocations, and RTO permits.
+          </div>
+        </div>
+        <a href="http://localhost:3000" target="_blank" class="card-link">Launch Enterprise &rarr;</a>
+      </div>
+
+      <!-- Dispatcher Console -->
+      <div class="card">
+        <div>
+          <div class="card-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📡</div>
+          <div class="card-title">Dispatcher Console</div>
+          <div class="card-desc">
+            Live fleet map, incident management, edge audio telemetry panic alerts, and real-time emergency resolution.
+          </div>
+        </div>
+        <a href="http://localhost:3000" target="_blank" class="card-link">Launch Dispatcher &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Embedded Frame Container -->
+    <div id="frame-container">
+      <div style="padding: 0.75rem 1.25rem; background: #0f172a; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #94a3b8;">Embedded View (http://localhost:3000)</span>
+        <button onclick="toggleEmbedMode()" class="btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; border-radius: 0.5rem; cursor: pointer;">Close Frame</button>
+      </div>
+      <iframe id="appFrame" src="" title="Yatra Mesh Application"></iframe>
+    </div>
+
+  </div>
+
+  <!-- Global Footer -->
+  <footer>
+    <div>
+      <strong style="color: #cbd5e1;">Yatra Mesh</strong> • Section 74 Contract Carriage & Aggregator Safety Compliant
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">
+      Local Dev Endpoint: <a href="http://localhost:3000" target="_blank" style="color: #38bdf8; text-decoration: none;">http://localhost:3000</a>
+    </div>
+  </footer>
+
+  <script>
+    let isServerOnline = false;
+    let redirectTimer = null;
+    let countdownSec = 3;
+    let isEmbedActive = false;
+
+    const serverPill = document.getElementById('serverPill');
+    const serverDot = document.getElementById('serverDot');
+    const serverStatusText = document.getElementById('serverStatusText');
+    const autoRedirectBox = document.getElementById('autoRedirectBox');
+    const countdownText = document.getElementById('countdownText');
+    const offlineNotice = document.getElementById('offlineNotice');
+    const frameContainer = document.getElementById('frame-container');
+    const appFrame = document.getElementById('appFrame');
+
+    async function checkServerHealth() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1800);
+        // Ping Next.js root or manifest
+        const res = await fetch('http://localhost:3000/manifest.json', { 
+          mode: 'no-cors',
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        setOnlineStatus(true);
+      } catch (err) {
+        setOnlineStatus(false);
+      }
+    }
+
+    function setOnlineStatus(online) {
+      if (online) {
+        if (!isServerOnline) {
+          isServerOnline = true;
+          serverDot.className = 'status-dot online';
+          serverStatusText.innerText = 'Next.js Server Online';
+          serverPill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          serverPill.style.color = '#34d399';
+          offlineNotice.style.display = 'none';
+
+          // If not in frame mode, optionally trigger auto-redirect notice
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('no_redirect') !== '1') {
+            startCountdown();
+          }
+        }
+      } else {
+        isServerOnline = false;
+        serverDot.className = 'status-dot offline';
+        serverStatusText.innerText = 'Next.js Server Offline';
+        serverPill.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+        serverPill.style.color = '#f87171';
+        offlineNotice.style.display = 'block';
+        cancelRedirect();
+      }
+    }
+
+    function startCountdown() {
+      autoRedirectBox.style.display = 'flex';
+      countdownSec = 3;
+      countdownText.innerText = countdownSec;
+
+      redirectTimer = setInterval(() => {
+        countdownSec--;
+        countdownText.innerText = countdownSec;
+        if (countdownSec <= 0) {
+          clearInterval(redirectTimer);
+          window.location.href = 'http://localhost:3000';
+        }
+      }, 1000);
+    }
+
+    function cancelRedirect() {
+      if (redirectTimer) {
+        clearInterval(redirectTimer);
+        redirectTimer = null;
+      }
+      autoRedirectBox.style.display = 'none';
+    }
+
+    function toggleEmbedMode() {
+      cancelRedirect();
+      isEmbedActive = !isEmbedActive;
+      if (isEmbedActive) {
+        frameContainer.style.display = 'block';
+        if (!appFrame.src || appFrame.src === 'about:blank') {
+          appFrame.src = 'http://localhost:3000';
+        }
+        frameContainer.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('btnEmbedApp').innerText = '✕ Hide Embedded Window';
+      } else {
+        frameContainer.style.display = 'none';
+        document.getElementById('btnEmbedApp').innerText = '🖥️ Open Inside This Window';
+      }
+    }
+
+    function promptLanIp() {
+      const hostname = window.location.hostname && window.location.hostname !== '' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' 
+        ? window.location.hostname 
+        : prompt("Enter this computer's local Wi-Fi IP address (e.g. 192.168.1.5 or 10.x.x.x):", "");
+      if (hostname) {
+        window.open(`http://${hostname.trim()}:3000`, '_blank');
+      }
+    }
+
+    // Initial check and periodic polling
+    checkServerHealth();
+    setInterval(checkServerHealth, 2000);
+  </script>
+</body>
+</html>

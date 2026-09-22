@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="ymGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="50%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="ymGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#070B13" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Background with subtle corner radius -->
+  <rect width="192" height="192" rx="40" fill="#070B13"/>
+  <circle cx="96" cy="96" r="80" fill="url(#ymGlow)"/>
+  <rect x="8" y="8" width="176" height="176" rx="36" fill="none" stroke="#1E293B" stroke-width="2"/>
+  
+  <!-- Mesh Transit Node Network -->
+  <path d="M 45 135 L 96 45 L 147 135" fill="none" stroke="url(#ymGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 64 102 L 128 102" fill="none" stroke="#06B6D4" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Waypoint Nodes -->
+  <circle cx="96" cy="45" r="10" fill="#10B981" stroke="#070B13" stroke-width="4"/>
+  <circle cx="45" cy="135" r="9" fill="#06B6D4" stroke="#070B13" stroke-width="3"/>
+  <circle cx="147" cy="135" r="9" fill="#3B82F6" stroke="#070B13" stroke-width="3"/>
+  <circle cx="96" cy="102" r="6" fill="#F8FAFC"/>
+</svg>

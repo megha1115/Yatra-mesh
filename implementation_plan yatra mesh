@@ -1,0 +1,169 @@
+# Yatra Mesh: 6-Week Agile MVP Implementation Plan
+
+Yatra Mesh is an intelligent corporate shared transit and mesh mobility platform built to transform enterprise employee commute into high-occupancy ($\ge 90\%$), hyper-localized, RTO-compliant contract carriage routes with proactive acoustic safety and offline mesh resilience.
+
+This plan details the full implementation of the live working MVP prototype covering all 6 sprint phases with high-fidelity UI/UX, smooth animations, interactive maps, audio telemetry, and offline synchronization.
+
+---
+
+## Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Enterprise ["Enterprise & Demand Layer"]
+        HR["Enterprise HR Portal"] -->|"Upload Shifts & Rosters"| API_Cluster["Clustering & Demand Engine"]
+        API_Cluster -->|"Structured Output"| Gemini["Gemini 1.5 Flash Routing"]
+    end
+
+    subgraph Core ["Core Fleet & Trip Engine"]
+        Gemini -->|"Clusters & Virtual Stops"| Router["Polyline & Route Synthesizer"]
+        Router -->|"Manifests"| DB[("PostGIS / Schema Layer")]
+        DB --> Dispatcher["Dispatcher Ops Desk"]
+    end
+
+    subgraph CommuterPortal ["Commuter & Driver Portals"]
+        Commuter["Commuter Portal"] <-->|"Boarding Pass & Live ETA"| DB
+        Driver["Driver HUD View"] <-->|"Manifest Checklist & GPS"| DB
+    end
+
+    subgraph EdgeSafety ["Phase 4: Proactive Edge Safety"]
+        Mic["Web Audio API Telemetry"] -->|"RMS > 85 dB for 3s"| SafetyLoop["Acoustic Anomaly Detector"]
+        SafetyLoop -->|"10s Check-in Modal"| Commuter
+        SafetyLoop -->|"Timeout / Panic Escalation"| EmergencyHold["EMERGENCY_HOLD Event"]
+        EmergencyHold -->|"Contextual Alert Packet"| Dispatcher
+    end
+
+    subgraph OfflineMesh ["Phase 5: Offline PWA & Mesh Fallback"]
+        Driver <-->|"Local Cache"| IDB[("IndexedDB Manifest")]
+        Commuter <-->|"Offline QR Pass"| Driver
+        IDB -->|"Sync Queue on Reconnect"| DB
+    end
+```
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Key Architectural Decisions & Standards:**
+> 1. **Framework & Stack**: Next.js 15 App Router with TypeScript, Tailwind CSS, Lucide React icons, and HTML5 Web Audio API for edge decibel telemetry.
+> 2. **Map & Routing**: Custom high-fidelity interactive vector map engine with realistic road geometry, pulsing geofenced virtual pickup spots, and smooth animated vehicle motion along routes.
+> 3. **Gemini Macro-Routing**: Dual-mode engine: connects to Gemini 1.5 Flash structured output via `@google/genai` when `GEMINI_API_KEY` is present, with a built-in deterministic geometric K-means & Voronoi clustering algorithm with $<150\text{m}$ walking distance constraints as a zero-config fallback.
+> 4. **Edge Audio Safety**: Uses the browser's native Web Audio API to calculate continuous root-mean-square (RMS) decibels, with a "Simulate Disturbance" control allowing instant live demo evaluation without needing to scream into microphones.
+> 5. **Offline Mesh & IndexedDB**: Real IndexedDB storage with an offline toggle switch ("Simulate Cellular Dead Zone") to demonstrate peer-to-peer boarding pass verification and automatic sync-queue playback upon reconnection.
+> 6. **Role Switcher & Interactive Roadmap**: A sleek top-bar controller enabling one-click switching between Commuter, Driver, Enterprise HR, Dispatcher Ops, and the 6-Week Sprint Roadmap viewer.
+
+---
+
+## Proposed Changes
+
+### 1. Foundation & Scaffolding (Phase 1)
+
+#### [NEW] [package.json](file:///c:/Users/megha/Yatra%20Mesh/package.json)
+Sets up project named `yatra-mesh` with Next.js 15, React 19/18, Tailwind CSS, `@google/genai`, `lucide-react`, `clsx`, `tailwind-merge`, and required TypeScript tooling.
+
+#### [NEW] [tsconfig.json](file:///c:/Users/megha/Yatra%20Mesh/tsconfig.json) & [next.config.ts](file:///c:/Users/megha/Yatra%20Mesh/next.config.ts)
+Next.js and TypeScript configurations with path aliases (`@/*`).
+
+#### [NEW] [src/lib/db/schema.prisma](file:///c:/Users/megha/Yatra%20Mesh/src/lib/db/schema.prisma) & [src/lib/types/index.ts](file:///c:/Users/megha/Yatra%20Mesh/src/lib/types/index.ts)
+Comprehensive schema modeling the RTO Contract Carriage structure:
+- **Enterprise**: CIN number (`U72200KA2023PTC178941`), corporate contract permit reference (`KA-RTO-CC-2024-918`), enterprise name, ESG goals.
+- **User**: Roles (`COMMUTER`, `DRIVER`, `HR_ADMIN`, `DISPATCHER`), contact, KYC status.
+- **FleetVehicle**: Yellow-board commercial registration (`KA 03 AG 9042`), vehicle type (`SHARED_AUTO` [3], `TEMPO_TRAVELER` [12], `MINIBUS` [24]), seat capacity, insurance & permit doc references.
+- **TripManifest**: Manifest ID, route polylines, trip state (`SCHEDULED`, `EN_ROUTE`, `EVALUATING`, `EMERGENCY_HOLD`, `COMPLETED`), departure time, metrics.
+- **TripPassenger**: Assigned seat, boarding status (`PENDING`, `ONBOARDED`, `NO_SHOW`), virtual stop coordinates, walking distance ($<150\text{m}$), digital boarding token.
+
+---
+
+### 2. Macro Gemini Routing & Demand Clustering Engine (Phase 2)
+
+#### [NEW] [src/lib/gemini/clustering.ts](file:///c:/Users/megha/Yatra%20Mesh/src/lib/gemini/clustering.ts)
+Structured output pipeline enforcing constraints:
+- Average walking distance $< 150\text{ meters}$.
+- Vehicle selection: Shared Auto (3 seats), Tempo Traveler (12 seats), Minibus (24 seats).
+- Target seat occupancy $\ge 90\%$.
+- Structured JSON response parser with deterministic geometric fallback clustering and road polyline generation.
+
+#### [NEW] [src/app/api/routing/cluster/route.ts](file:///c:/Users/megha/Yatra%20Mesh/src/app/api/routing/cluster/route.ts)
+Server endpoint for batch employee route clustering and polyline synthesis.
+
+---
+
+### 3. Interactive Web Portals & Dashboards (Phase 3)
+
+#### [NEW] [src/components/portals/CommuterPortal.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/portals/CommuterPortal.tsx)
+- Live interactive map displaying assigned vehicle route, pulsing geofenced virtual stop ($150\text{m}$ walking radius), and animated simulated vehicle telemetry.
+- Holographic Digital Boarding Pass with passenger KYC badge, seat number, dynamic QR validation token, and live ETA countdown.
+
+#### [NEW] [src/components/portals/EnterprisePortal.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/portals/EnterprisePortal.tsx)
+- Employee shift roster batch uploader (CSV / JSON dropzone + sample datasets for Bangalore Outer Ring Road / Cyber City).
+- Live analytics: Fleet seat utilization rate gauge ($\ge 90\%$), corporate transit spend savings calculator, and ESG carbon reduction dashboard (kg CO2 avoided vs single-occupancy cabs).
+
+#### [NEW] [src/components/portals/DriverPortal.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/portals/DriverPortal.tsx)
+- Driver HUD with turn-by-turn navigation cards, next virtual stop coordinates, and verified pickup checklist.
+- Offline QR pass validator and prominent one-tap `EMERGENCY_HOLD` toggle.
+
+#### [NEW] [src/components/portals/DispatcherPortal.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/portals/DispatcherPortal.tsx)
+- Real-time fleet operations overview map with trip state filters (`SCHEDULED`, `EN_ROUTE`, `EVALUATING`, `EMERGENCY_HOLD`, `COMPLETED`).
+- Live incident triage drawer with incoming acoustic telemetry packets and passenger manifests.
+
+---
+
+### 4. Proactive Edge Safety & Audio Telemetry (Phase 4)
+
+#### [NEW] [src/lib/safety/audioTelemetry.ts](file:///c:/Users/megha/Yatra%20Mesh/src/lib/safety/audioTelemetry.ts)
+- Client-side Web Audio API audio analyzer computing running RMS decibels.
+- Disturbance detection: triggers when audio $> 85\text{ dB}$ for $> 3\text{ seconds}$.
+- Simulator controls for live presentation without shouting.
+
+#### [NEW] [src/components/safety/SafetyModal.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/safety/SafetyModal.tsx)
+- 10-second conversational check-in modal with radial countdown ring: *"Yatra safety system detected an unusual disturbance. Are you safe?"*
+- Escalation protocol: If user clicks "I Need Help" or fails to respond within 10 seconds, escalates to `EMERGENCY_HOLD` and dispatches alert packet to mock dispatch console.
+
+---
+
+### 5. Offline PWA & Mesh Fallback (Phase 5)
+
+#### [NEW] [src/lib/offline/indexedDb.ts](file:///c:/Users/megha/Yatra%20Mesh/src/lib/offline/indexedDb.ts)
+- Client-side IndexedDB database storing driver manifests, passenger tokens, and offline event queue.
+
+#### [NEW] [src/lib/offline/syncManager.ts](file:///c:/Users/megha/Yatra%20Mesh/src/lib/offline/syncManager.ts)
+- Offline boarding pass verification against local cache.
+- Sync queue replay engine that synchronizes offline boarding timestamps upon network restoration.
+- Network simulation switch ("Simulate Cellular Dead Zone") in the UI header.
+
+---
+
+### 6. Production Hardening & Sprint Roadmap Explorer (Phase 6)
+
+#### [NEW] [src/components/roadmap/SprintRoadmap.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/roadmap/SprintRoadmap.tsx)
+- Interactive visual roadmap viewer detailing Weeks 1–6: deliverables, architecture specifications, RTO compliance details, and progress milestones.
+
+#### [NEW] [src/components/map/InteractiveRouteMap.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/components/map/InteractiveRouteMap.tsx)
+- Smooth animated Canvas / SVG vector map component supporting real-time vehicle movement, virtual stop geofences, pedestrian walking paths, and telemetry HUD overlays.
+
+#### [NEW] [src/app/page.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/app/page.tsx) & [src/app/layout.tsx](file:///c:/Users/megha/Yatra%20Mesh/src/app/layout.tsx)
+- Root layout and main application hub unifying all portals, live state management, audio telemetry listener, and role switcher.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run Next.js build verification: `npm run build` or `npx next build` to ensure type safety, clean bundle generation, and zero lint errors.
+
+### Manual Verification
+1. **Phase 1 (Data & Scaffolding)**:
+   - Verify Prisma schema definition, RTO contract carriage compliance structures, and role permissions.
+2. **Phase 2 (Clustering Engine)**:
+   - Upload sample employee shift batch; verify clustered groups meet $<150\text{m}$ walk distance, $\ge 90\%$ occupancy, and correct vehicle assignment (Auto / Tempo / Minibus).
+3. **Phase 3 (Portals)**:
+   - Switch roles (Commuter, Enterprise HR, Driver, Dispatcher) and test all portal features, digital boarding pass QR, and simulated vehicle movement.
+4. **Phase 4 (Audio Telemetry & Safety Loop)**:
+   - Start microphone or click "Simulate Acoustic Spike (>88 dB)" for 3 seconds.
+   - Verify trip enters `EVALUATING` state, 10-second modal triggers, and auto-escalation to `EMERGENCY_HOLD` sends incident packet to Dispatcher.
+5. **Phase 5 (Offline PWA & Mesh Fallback)**:
+   - Enable "Simulate Offline Mode". Scan/board commuter pass offline.
+   - Verify IndexedDB stores boarding event. Toggle offline mode off and verify auto-sync to central trip manifest.
+6. **Phase 6 (Roadmap & UX Polish)**:
+   - Open Sprint Roadmap viewer to review engineering milestones. Verify animations and UI responsiveness.
